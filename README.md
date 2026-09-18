@@ -1,4 +1,4 @@
-# 🔔 Klaxon — error tracking that collapses volume into signal
+# Klaxon — error tracking that collapses volume into signal
 
 <div align="center">
 
@@ -16,17 +16,17 @@ Drop the SDK into your app and every crash reports itself. Klaxon fingerprints t
 
 ---
 
-## ✨ Features
+## Features
 
-- **🪝 Catch** — browser/Node SDK hooks `onerror` and `unhandledrejection`, batches events, flushes on tab close via `sendBeacon`, and never throws inside your app
-- **🧬 Group** — fingerprints in-app stack frames (not line numbers), so an edit above the throw site never splits one bug in two, and Chrome/Firefox traces for the same crash land in one issue
-- **🔁 Deduplicate** — retried submissions are discarded by client `event_id`, so network flakiness cannot inflate your counts
-- **🔔 Alert** — new-issue, regression, and volume rules behind a per-issue cooldown — 1,000 crashes produce 1 notification
-- **🤖 Explain** *(optional)* — Gemini reads the trace and breadcrumbs and suggests a root cause
+- **Catch** — browser/Node SDK hooks `onerror` and `unhandledrejection`, batches events, flushes on tab close via `sendBeacon`, and never throws inside your app
+- **Group** — fingerprints in-app stack frames (not line numbers), so an edit above the throw site never splits one bug in two, and Chrome/Firefox traces for the same crash land in one issue
+- **Deduplicate** — retried submissions are discarded by client `event_id`, so network flakiness cannot inflate your counts
+- **Alert** — new-issue, regression, and volume rules behind a per-issue cooldown — 1,000 crashes produce 1 notification
+- **Explain** *(optional)* — Gemini reads the trace and breadcrumbs and suggests a root cause
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 SDK ──► Ingest ──► Group ──► Alert
@@ -38,7 +38,7 @@ The ingest endpoint returns `202` before doing real work, is rate-limited per pr
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -49,7 +49,7 @@ The ingest endpoint returns `202` before doing real work, is rate-limited per pr
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -89,7 +89,7 @@ Frontend runs on **http://localhost:5173**
 
 ---
 
-## 🔌 SDK Integration
+## SDK Integration
 
 ### Create a project
 
@@ -117,7 +117,7 @@ Prints throughput and p50/p95/p99 ingest latency, then shows events collapsing i
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 | Method | Path | Description |
 |---|---|---|
@@ -134,7 +134,7 @@ Prints throughput and p50/p95/p99 ingest latency, then shows events collapsing i
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Klaxon/
@@ -150,7 +150,7 @@ Klaxon/
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 **Implemented:**
 - Ingest, grouping, deduplication, sampling
@@ -168,12 +168,12 @@ Klaxon/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you'd like to change.
 
 ---
 
-## 📄 License
+## License
 
 MIT
