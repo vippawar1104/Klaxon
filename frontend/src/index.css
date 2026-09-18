@@ -1,0 +1,592 @@
+@import "tailwindcss";
+
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+@theme {
+  /* Space Grotesk instead of Rubik: Rubik is the typeface sentry.io itself
+     uses, and Klaxon's whole visual identity previously leaned on Sentry's —
+     same font, same dark-violet/lime/pink triad. Deliberately different now. */
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg-base: #f6f4f0;
+  --color-bg-surface: #ffffff;
+  --color-bg-raised: #eeebe4;
+  --color-border-subtle: #e3dfd8;
+
+  --color-text-primary: #0d0d0d;
+  --color-text-secondary: #55524c;
+  --color-text-tertiary: #8b8780;
+
+  --color-accent: #332f2b;
+  --color-accent-hover: #1f1c19;
+
+  --color-severity-success: #15803d;
+  --color-severity-warning: #a16207;
+  --color-severity-error: #b91c1c;
+
+  /* Marketing landing page palette — dark, separate from the light app theme
+     above. Built around what "Klaxon" actually is: a warning horn. Deliberately
+     a TWO-color system, not three competing accents:
+       - orange   — the one true accent, the alarm light itself
+       - pine     — the one other color, and it is doing real work: it is
+                    uncommon in dev-tool branding specifically because almost
+                    everyone reaches for blue/green/purple, so it reads as
+                    chosen rather than default
+     A third "purple" is kept only as a variable name for back-compat with the
+     ~70 class references in LandingPage.tsx — its value is now a deeper burnt
+     shade of the SAME orange, not a separate hue, so the system stays two
+     colors visually. Nothing here shares a hue family with Sentry's
+     purple/pink/lime triad. */
+  --color-landing-bg: #120d09;
+  --color-landing-bg-2: #0a0706;
+  --color-landing-card: #1c140d;
+  --color-landing-line: #3d2c1c;
+  --color-landing-ink: #fff3e2;
+  --color-landing-muted: #c9b49b;
+  --color-landing-pink: #ff5a1f; /* the orange */
+  --color-landing-lime: #2f8f5b; /* the one unique other: deep pine */
+  --color-landing-purple: #e8480f; /* burnt-orange variant, not a 3rd hue */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/*
+ * The landing page is dark while the dashboard is light. Without this, an
+ * overscroll bounce at the top of the landing page exposes the light body
+ * background behind it as a white flash.
+ */
+html.landing-theme,
+html.landing-theme body {
+  background-color: var(--color-landing-bg);
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-subtle);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- motion ---------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-14px) scale(1.25);
+    opacity: 0.9;
+  }
+}
+
+/*
+ * "Code breaks, catch it once" — the word acts out the headline.
+ *
+ * Two coloured copies sit exactly behind the real word and stay invisible until
+ * the break, when they slide apart in horizontal scan-bands (chromatic split).
+ * Then everything snaps back into register with a green repair flash. The word
+ * itself never moves in flow, so nothing around it shifts.
+ */
+.glitch {
+  position: relative;
+  display: inline-block;
+  animation: glitch-main 7s steps(1, end) infinite;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.glitch::before {
+  color: var(--color-landing-pink);
+  animation: glitch-shift-a 7s steps(1, end) infinite;
+}
+
+.glitch::after {
+  color: var(--color-landing-lime);
+  animation: glitch-shift-b 7s steps(1, end) infinite;
+}
+
+@keyframes glitch-main {
+  0%,
+  57% {
+    transform: none;
+    text-shadow: none;
+  }
+  59% {
+    transform: translateX(2px) skewX(-1.2deg);
+  }
+  62% {
+    transform: translateX(-3px) skewX(1.6deg);
+  }
+  65% {
+    transform: translateX(2px) skewX(-0.8deg);
+  }
+  68% {
+    transform: translateX(-1px);
+  }
+  /* repaired */
+  71% {
+    transform: none;
+    text-shadow: 0 0 26px rgba(47, 143, 91, 0.85); /* pine — was hardcoded old lime */
+  }
+  78%,
+  100% {
+    transform: none;
+    text-shadow: none;
+  }
+}
+
+/*
+ * The two copies always occupy different horizontal bands at the same instant —
+ * otherwise they stack in the same place and read as a drop shadow instead of a
+ * tear running through the word.
+ */
+@keyframes glitch-shift-a {
+  0%,
+  57%,
+  71%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+  58% {
+    opacity: 0.95;
+    transform: translate(-9px, -1px);
+    clip-path: inset(4% 0 72% 0); /* top */
+  }
+  61% {
+    opacity: 0.95;
+    transform: translate(10px, 1px);
+    clip-path: inset(46% 0 30% 0); /* middle */
+  }
+  64% {
+    opacity: 0.95;
+    transform: translate(-11px, 0);
+    clip-path: inset(76% 0 2% 0); /* bottom */
+  }
+  67% {
+    opacity: 0.85;
+    transform: translate(7px, -1px);
+    clip-path: inset(20% 0 58% 0); /* upper middle */
+  }
+  70% {
+    opacity: 0.45;
+    transform: translate(-3px, 0);
+    clip-path: inset(56% 0 26% 0);
+  }
+}
+
+@keyframes glitch-shift-b {
+  0%,
+  57%,
+  71%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+  58% {
+    opacity: 0.9;
+    transform: translate(9px, 1px);
+    clip-path: inset(64% 0 8% 0); /* bottom */
+  }
+  61% {
+    opacity: 0.9;
+    transform: translate(-10px, -1px);
+    clip-path: inset(8% 0 68% 0); /* top */
+  }
+  64% {
+    opacity: 0.9;
+    transform: translate(11px, 0);
+    clip-path: inset(36% 0 44% 0); /* middle */
+  }
+  67% {
+    opacity: 0.8;
+    transform: translate(-7px, 1px);
+    clip-path: inset(68% 0 6% 0); /* lower */
+  }
+  70% {
+    opacity: 0.4;
+    transform: translate(3px, 0);
+    clip-path: inset(26% 0 54% 0);
+  }
+}
+
+/*
+ * Infinite logo marquee. The track holds two copies of the list and shifts by
+ * exactly -50%, which only lands on an identical frame if each item carries its
+ * own trailing space. A flex `gap` would put N-1 gaps between N items, leaving
+ * the halves unequal and making the loop visibly jump — so spacing lives on the
+ * items (.marquee-item) instead.
+ */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 34s linear infinite;
+}
+
+.marquee-item {
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/*
+ * Terminal typing. The step count must equal the character count of the string
+ * being typed (27 for "npm install @klaxon/browser") or the width advances in
+ * fractions of a glyph and letters appear to stutter in at random.
+ *
+ * The caret is the element's right border, so it tracks the text edge for free.
+ * It stays solid while characters are being written or deleted and only blinks
+ * during the idle hold — which is how a real terminal cursor behaves.
+ */
+/*
+ * Widths are in `ch`, not %. On an inline-block, `width: 100%` resolves against
+ * the parent container rather than the text, so the reveal overshoots the last
+ * character and the caret drifts into empty space. In a monospace face 1ch is
+ * exactly one glyph, so `--chars` steps land on character boundaries.
+ */
+@keyframes type {
+  0% {
+    width: 0;
+  }
+  38%,
+  88% {
+    width: calc(var(--chars) * 1ch);
+  }
+  96%,
+  100% {
+    width: 0;
+  }
+}
+
+@keyframes caret-blink {
+  /* typing — solid */
+  0%,
+  37% {
+    border-color: var(--color-landing-lime);
+  }
+  /* idle hold — blink */
+  38%,
+  44% {
+    border-color: transparent;
+  }
+  45%,
+  51% {
+    border-color: var(--color-landing-lime);
+  }
+  52%,
+  58% {
+    border-color: transparent;
+  }
+  59%,
+  65% {
+    border-color: var(--color-landing-lime);
+  }
+  66%,
+  72% {
+    border-color: transparent;
+  }
+  73%,
+  79% {
+    border-color: var(--color-landing-lime);
+  }
+  80%,
+  86% {
+    border-color: transparent;
+  }
+  /* erasing and empty — solid again */
+  87%,
+  100% {
+    border-color: var(--color-landing-lime);
+  }
+}
+
+.typing {
+  /* Character count of the string being typed. The step count below must match
+     it, or the width advances in fractions of a glyph and letters stutter in. */
+  --chars: 27;
+
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  border-right: 2px solid var(--color-landing-lime);
+  /* The global border-box rule would make the caret's 2px eat into the animated
+     width, so the first step lands 2px short of a full character. */
+  box-sizing: content-box;
+  animation:
+    type 7s steps(var(--chars), end) infinite,
+    caret-blink 7s steps(1, end) infinite;
+}
+
+/*
+ * Feature-card contents. Each mock acts out what its caption claims, on a shared
+ * 6s loop so the four cards feel like one system rather than four timers.
+ * `--i` staggers siblings without needing a rule per child.
+ */
+
+/* Grouping: the individual events fall away, leaving the single grouped row. */
+@keyframes collapse-row {
+  0%,
+  34% {
+    opacity: 1;
+    transform: none;
+  }
+  48% {
+    opacity: 0;
+    transform: translateY(9px) scale(0.96);
+  }
+  90% {
+    opacity: 0;
+    transform: translateY(9px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.collapse-row {
+  animation: collapse-row 6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 90ms);
+}
+
+/* …and the survivor lands with a flash as the count arrives. */
+@keyframes group-land {
+  0%,
+  44% {
+    border-color: rgb(146 221 0 / 0.5);
+    box-shadow: none;
+  }
+  54% {
+    border-color: rgb(146 221 0);
+    box-shadow: 0 0 26px -4px rgb(146 221 0 / 0.9);
+  }
+  72%,
+  100% {
+    border-color: rgb(146 221 0 / 0.5);
+    box-shadow: none;
+  }
+}
+
+.group-land {
+  animation: group-land 6s ease-in-out infinite;
+}
+
+/* Stack frames arriving one line at a time. */
+@keyframes line-in {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateX(-7px);
+  }
+  20%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-7px);
+  }
+}
+
+.line-in {
+  animation: line-in 6s ease-out infinite;
+  animation-delay: calc(var(--i) * 260ms);
+}
+
+/* Suppressed alerts tick past, dimmed. */
+@keyframes suppress-row {
+  0%,
+  10% {
+    opacity: 0;
+  }
+  22%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.suppress-row {
+  animation: suppress-row 6s ease-out infinite;
+  animation-delay: calc(var(--i) * 420ms);
+}
+
+/* The one alert that actually fires. */
+@keyframes alert-fire {
+  0%,
+  56% {
+    opacity: 0.25;
+    transform: scale(0.985);
+    box-shadow: none;
+  }
+  64% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 30px -6px rgb(255 69 168 / 0.95);
+  }
+  84%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+.alert-fire {
+  animation: alert-fire 6s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 31, 0.45); /* orange — was hardcoded old pink */
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 90, 31, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 31, 0);
+  }
+}
+
+/* Entrance for above-the-fold content, which needs no scroll trigger. */
+.rise {
+  animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.drift {
+  animation: drift 7s ease-in-out infinite;
+}
+
+.pulse-ring {
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+
+/*
+ * Scroll reveal. Default state is fully visible, so the content still reads if
+ * JS never runs; the observer only opts elements *into* animating.
+ */
+html.js-reveal [data-reveal] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.js-reveal [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .drift,
+  .pulse-ring,
+  .glitch,
+  .glitch::before,
+  .glitch::after,
+  .marquee-track,
+  .typing,
+  .collapse-row,
+  .group-land,
+  .line-in,
+  .suppress-row,
+  .alert-fire {
+    animation: none !important;
+  }
+
+  /* The typing effect clips its text to a growing width; without the animation
+     that width must be released or the command stays invisible. */
+  .typing {
+    width: auto;
+  }
+
+  /* These animate in from opacity 0, so the resting state has to be restored or
+     the card contents would never appear for reduced-motion users. */
+  .collapse-row,
+  .line-in,
+  .suppress-row,
+  .alert-fire {
+    opacity: 1;
+    transform: none;
+  }
+
+  .glitch::before,
+  .glitch::after {
+    display: none;
+  }
+
+  html.js-reveal [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

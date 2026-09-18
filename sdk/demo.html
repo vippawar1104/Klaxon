@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Klaxon SDK demo</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 3rem auto;
+        padding: 0 1rem;
+        line-height: 1.6;
+      }
+      button {
+        font: inherit;
+        padding: 0.5rem 0.9rem;
+        margin: 0 0.4rem 0.5rem 0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+      }
+      code {
+        background: #f4f4f5;
+        padding: 0.1em 0.35em;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Klaxon SDK demo</h1>
+    <p>
+      Each button throws a real error. The SDK catches it, batches it, and posts it to
+      <code>/api/1/store</code>. Open the dashboard to watch them group.
+    </p>
+
+    <button id="throw-type">Throw TypeError</button>
+    <button id="throw-ref">Throw ReferenceError</button>
+    <button id="reject">Unhandled rejection</button>
+    <button id="manual">captureException</button>
+    <button id="storm">Throw 50 (same bug)</button>
+
+    <p id="status"></p>
+
+    <script src="./klaxon.js"></script>
+    <script>
+      Klaxon.init({
+        dsn: 'http://pk_demo@localhost:8000/1',
+        release: 'demo@1.0.0',
+        environment: 'production',
+      })
+
+      const status = document.getElementById('status')
+      const note = (msg) => (status.textContent = msg)
+
+      function renderCart(cart) {
+        return cart.items.total // throws when cart.items is undefined
+      }
+
+      document.getElementById('throw-type').onclick = () => {
+        note('thrown — flushing within 5s')
+        renderCart({})
+      }
+
+      document.getElementById('throw-ref').onclick = () => {
+        note('thrown — flushing within 5s')
+        applyCoupon('SAVE10') // eslint-disable-line no-undef
+      }
+
+      document.getElementById('reject').onclick = () => {
+        note('rejected — flushing within 5s')
+        Promise.reject(new Error('Failed to fetch /api/inventory'))
+      }
+
+      document.getElementById('manual').onclick = () => {
+        try {
+          JSON.parse('{ not json')
+        } catch (e) {
+          Klaxon.captureException(e, { tags: { source: 'manual' } })
+          note('captured manually — flushing within 5s')
+        }
+      }
+
+      document.getElementById('storm').onclick = () => {
+        for (let i = 0; i < 50; i++) {
+          try {
+            renderCart({})
+          } catch (e) {
+            Klaxon.captureException(e)
+          }
+        }
+        Klaxon.flush()
+        note('50 events sent — they collapse into one issue')
+      }
+    </script>
+  </body>
+</html>

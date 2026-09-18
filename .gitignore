@@ -1,0 +1,37 @@
+**/*.gguf
+**/__pycache__/
+**/*logs
+.env
+.env.local
+.venv/
+frontend/.venv/
+
+# Database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Frontend build artifacts
+node_modules/
+frontend/dist/
+dist/
+
+# Benchmarks / test artifacts
+.benchmarks/
+scratch/
+
+# Python
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+*.egg
+.mypy_cache/
+.ruff_cache/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db

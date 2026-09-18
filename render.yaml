@@ -1,0 +1,68 @@
+# Render blueprint: API + Postgres + dashboard.
+#
+# Deploy with: push this repo to GitHub, then New > Blueprint on render.com and
+# point it at the repo. Render reads this file and creates all three services.
+#
+# The only value you must set by hand is GROQ_API_KEY (marked sync: false
+# below, so it is never committed) — everything else is wired automatically.
+
+databases:
+  # Postgres, not SQLite. A container's filesystem is ephemeral, so a SQLite
+  # file would be wiped on every deploy; its single-writer lock is also the
+  # measured ceiling on ingest throughput.
+  - name: klaxon-db
+    databaseName: klaxon
+    plan: free
+
+services:
+  - type: web
+    name: klaxon-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # $PORT is assigned by Render; binding to 0.0.0.0 is required or the health
+    # check cannot reach the process.
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: klaxon-db
+          property: connectionString
+      - key: KLAXON_INGEST_ORIGIN
+        # The address customer browsers post to, used to build every DSN.
+        #
+        # Set this by hand in the Render dashboard AFTER the first deploy, to
+        # the service's full URL INCLUDING the scheme:
+        #     https://klaxon-api.onrender.com
+        #
+        # Not wired via fromService/host on purpose: that property yields a
+        # bare hostname with no scheme, and dsn_for() splits on "://", so a
+        # scheme-less value produces a mangled DSN instead of failing loudly.
+        sync: false
+      - key: KLAXON_WORKER
+        # One instance on the free plan, so the queue drains in-process. Set to
+        # 0 and run a dedicated worker service if this is ever scaled out.
+        value: "1"
+      - key: GROQ_API_KEY
+        # Optional — only the "Explain" button needs it. Set in the Render
+        # dashboard; sync:false keeps it out of the repo.
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11"
+
+  - type: web
+    name: klaxon-dashboard
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_BASE
+        # Baked in at build time: the dashboard and API are separate origins in
+        # production, so the client cannot use a relative /api path.
+        value: https://klaxon-api.onrender.com/api
+    routes:
+      # SPA: every path must serve index.html or a refresh on /issues 404s.
+      - type: rewrite
+        source: /*
+        destination: /index.html
