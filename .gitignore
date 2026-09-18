@@ -21,14 +21,27 @@ dist/
 .benchmarks/
 scratch/
 
+# Tests
+tests/
+
+# Deployment config (not needed in repo)
+render.yaml
+
 # Python
 *.pyc
 *.pyo
 .pytest_cache/
+**/.pytest_cache/
 *.egg-info/
 *.egg
 .mypy_cache/
 .ruff_cache/
+.cache/
+**/.cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
 
 # Editors / OS
 .DS_Store
