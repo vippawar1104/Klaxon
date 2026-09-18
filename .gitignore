@@ -21,10 +21,15 @@ dist/
 .benchmarks/
 scratch/
 
-# Tests
+# Tests & testing scripts
 tests/
+scripts/test_all.sh
+scripts/test_backend.sh
 
-# Deployment config (not needed in repo)
+# SDK demo (not needed in repo)
+sdk/demo.html
+
+# Deployment config
 render.yaml
 
 # Python
