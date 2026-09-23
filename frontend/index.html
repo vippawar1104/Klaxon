@@ -5,6 +5,41 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Klaxon</title>
+    <!--
+      Runs before the first paint, on purpose. The page's background comes from
+      classes on <html> (`landing-theme` for the dark marketing pages, `dark`
+      for the dashboard in dark mode), and React only adds them after it has
+      downloaded, mounted, and — for the dashboard — finished two network
+      calls. Until then the browser paints the default light background, so
+      every refresh of a dark page flashed white, and a dark dashboard went
+      dark → light → dark. Deciding here, synchronously, removes the flash.
+
+      Keep the marketing route list in step with the routes in src/App.tsx, and
+      the storage keys with src/lib/useTheme.ts (klaxon.theme) and
+      src/lib/api.ts (klaxon.token).
+    -->
+    <script>
+      ;(function () {
+        try {
+          var path = location.pathname
+          var signedIn = !!localStorage.getItem('klaxon.token')
+          var marketing = /^\/(platform|solutions|resources|docs|pricing|feedback)(\/|$)/.test(path)
+          // "/" is the landing page for a visitor and the dashboard for a
+          // signed-in user; every other route is decided by the list above.
+          var landing = marketing || (path === '/' && !signedIn)
+          var root = document.documentElement
+          if (landing) {
+            root.classList.add('landing-theme')
+          } else {
+            var stored = localStorage.getItem('klaxon.theme')
+            var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+            if (dark) root.classList.add('dark')
+          }
+        } catch (e) {
+          /* storage blocked (private mode) — fall back to the light default */
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
