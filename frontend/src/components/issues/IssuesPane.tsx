@@ -74,9 +74,45 @@ function SkeletonRows() {
 /** Shown when a project has no events yet — the only question that matters here
  *  is "how do I get data in?", so the answer is a runnable command. */
 function Onboarding({ projectId }: { projectId: number }) {
-  const curl = `curl -X POST http://localhost:8000/api/${projectId}/store \\
+  // The command must carry THIS project's real key and THIS deployment's real
+  // API address. It used to hardcode http://localhost:8000 and the demo key,
+  // which only ever worked on the developer's own machine: anyone on a hosted
+  // instance copied a command that pointed nowhere, with a key that isn't
+  // theirs (a 403 at best). Both come from the project's DSN, which the API
+  // builds from its real public origin.
+  //   undefined = still loading, null = could not be determined
+  const [target, setTarget] = useState<{ origin: string; key: string } | null | undefined>(
+    undefined,
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .projects()
+      .then((list) => {
+        if (cancelled) return
+        const project = list.find((p) => p.id === projectId)
+        try {
+          setTarget(project ? { origin: new URL(project.dsn).origin, key: project.public_key } : null)
+        } catch {
+          setTarget(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTarget(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
+
+  // If it can't be worked out, show obvious placeholders rather than a
+  // plausible-looking wrong address.
+  const origin = target?.origin ?? '<your-klaxon-url>'
+  const key = target?.key ?? '<your-project-key>'
+  const curl = `curl -X POST ${origin}/api/${projectId}/store \\
   -H 'Content-Type: application/json' \\
-  -H 'X-Klaxon-Key: pk_demo' \\
+  -H 'X-Klaxon-Key: ${key}' \\
   -d '{"event_id":"'$(uuidgen)'","type":"TypeError","value":"Cannot read property .total. of undefined","stacktrace":"TypeError: boom\\n    at renderCart (https://shop.example.com/assets/cart.js:42:18)"}'`
 
   return (
@@ -93,19 +129,14 @@ function Onboarding({ projectId }: { projectId: number }) {
       <div className="mt-5 overflow-hidden rounded-lg border border-border-subtle bg-bg-base">
         <div className="flex items-center justify-between border-b border-border-subtle px-3 py-1.5">
           <span className="font-mono text-[11px] text-text-tertiary">bash</span>
-          <CopyButton value={curl} label="Copy" />
+          {/* Not offered until the real address and key are known — copying
+              the placeholder version would defeat the point. */}
+          {target !== undefined && <CopyButton value={curl} label="Copy" />}
         </div>
         <pre className="overflow-x-auto p-3 font-mono text-[12px] leading-relaxed text-text-secondary">
-          {curl}
+          {target === undefined ? 'Loading…' : curl}
         </pre>
       </div>
-
-      <p className="mt-4 text-[12.5px] text-text-tertiary">
-        Or fire a realistic batch:{' '}
-        <code className="font-mono text-text-secondary">
-          python scripts/generate_crashes.py --count 200
-        </code>
-      </p>
     </div>
   )
 }
