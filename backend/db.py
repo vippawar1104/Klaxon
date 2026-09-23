@@ -1,8 +1,21 @@
 import logging
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import inspect, text
 from sqlmodel import Session, SQLModel, create_engine
+
+# Loaded here, not left to whichever module happens to import first: this
+# file reads DATABASE_URL at import time, a few lines down, and main.py's
+# very first import is `from backend.db import init_db` — before anything
+# else has had a chance to load .env into the process environment.
+# backend/deps.py already calls load_dotenv() too, for the same reason on
+# its own config reads, but that ran too late here — db.py had already
+# resolved DATABASE_URL to empty and silently fallen back to SQLite. A real
+# DATABASE_URL sitting in .env, unused, is exactly how this went unnoticed:
+# every write this session went to the local SQLite file, never to the
+# configured database, and nothing errored to say so.
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
