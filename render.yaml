@@ -1,0 +1,70 @@
+# Render blueprint: API (Python web service) + dashboard (static site).
+#
+# The database is Neon, not Render Postgres — there is deliberately no
+# `databases:` block. DATABASE_URL is a secret you paste in when the
+# Blueprint is created (sync: false = "prompt me, never commit it").
+#
+# URLs: Render only uses a service's exact name as its subdomain if nobody else
+# has taken it. The two URLs below (KLAXON_INGEST_ORIGIN, VITE_API_BASE) assume
+# these names were free. After creating the Blueprint, confirm the API's real
+# URL on its Render page — if it got a random suffix, fix BOTH values.
+# If you rename a service, change both values to match.
+
+services:
+  - type: web
+    name: klaxon-api-vippawar
+    runtime: python
+    # Ohio: same region as the Neon database (us-east-2), so every query is a
+    # few ms instead of ~250 ms from far away.
+    region: ohio
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # $PORT is assigned by Render; 0.0.0.0 is required or the health check
+    # cannot reach the process.
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      # Must be FULLY qualified (3.12.1, not 3.12) — and pinned: new services
+      # default to 3.14, which the pinned dependencies were never tested on.
+      # This is the version the test suite runs on.
+      - key: PYTHON_VERSION
+        value: 3.12.1
+      - key: DATABASE_URL
+        sync: false
+      # The address customer browsers post to, used to build every DSN. Full
+      # URL INCLUDING the scheme — a bare hostname produces a mangled DSN.
+      - key: KLAXON_INGEST_ORIGIN
+        value: https://klaxon-api-vippawar.onrender.com
+      # One instance, so the queue drains in-process. Set to 0 and run a
+      # dedicated worker if this is ever scaled out.
+      - key: KLAXON_WORKER
+        value: "1"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PRO_PRICE_ID
+        sync: false
+      # The account allowed to read the feedback inbox.
+      - key: KLAXON_OWNER_EMAIL
+        sync: false
+      # Not declared here on purpose, added in the dashboard after deploy:
+      #   STRIPE_WEBHOOK_SECRET  (only exists once the webhook endpoint does)
+      #   GROQ_API_KEY           (optional; only the "Explain" button uses it)
+
+  - type: web
+    name: klaxon-app-vippawar
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      # Vite 8 needs Node ^20.19 or >=22.12; this is what it was built with.
+      - key: NODE_VERSION
+        value: 20.19.5
+      # Baked in at build time: the dashboard and API are separate origins, so
+      # the client cannot use a relative /api path.
+      - key: VITE_API_BASE
+        value: https://klaxon-api-vippawar.onrender.com/api
+    routes:
+      # SPA: every path must serve index.html or a refresh on /pricing 404s.
+      - type: rewrite
+        source: /*
+        destination: /index.html
