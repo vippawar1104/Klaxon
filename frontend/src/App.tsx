@@ -18,6 +18,8 @@ import { FeedbackInboxPage } from './components/landing/FeedbackInboxPage'
 import { AuthPage, type AuthMode } from './components/auth/AuthPage'
 import { api, getToken, setToken } from './lib/api'
 import { daysLeft } from './lib/trial'
+import { useAlertNotifications } from './lib/useAlertNotifications'
+import { NotifyBanner } from './components/NotifyBanner'
 
 export type { PaneKey }
 
@@ -56,6 +58,8 @@ function Home() {
   const [activePane, setActivePane] = useState<PaneKey>('issues')
   const [projectId, setProjectId] = useState<number | null>(null)
   const [openIssueId, setOpenIssueId] = useState<number | null>(null)
+  const { permission: notifyPermission, request: requestNotifyPermission } =
+    useAlertNotifications(projectId)
   const [creating, setCreating] = useState(false)
 
   // Checked once on entering the dashboard, before Sidebar or any pane
@@ -265,6 +269,8 @@ function Home() {
           </button>
         </div>
       )}
+
+      <NotifyBanner permission={notifyPermission} onRequest={requestNotifyPermission} />
 
       <div className="flex min-h-0 flex-1">
         <Sidebar
