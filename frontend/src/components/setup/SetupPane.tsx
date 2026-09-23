@@ -148,25 +148,15 @@ export function SetupPane({ projectId }: { projectId: number | null }) {
         </Step>
       </ol>
 
-      <details className="rounded-xl border border-border-subtle bg-bg-surface p-5">
+      <details className="rounded-xl border border-border-subtle bg-bg-surface p-5" open>
         <summary className="cursor-pointer text-[13px] font-semibold uppercase tracking-wide text-text-tertiary">
           Using React, Next.js or a bundler?
         </summary>
         <div className="mt-3 space-y-3 text-[13.5px] leading-relaxed text-text-secondary">
           <p>
-            <strong className="font-semibold text-text-primary">React swallows render errors.</strong>{' '}
-            They go to an error boundary rather than{' '}
-            <code className="font-mono text-[12.5px]">window.onerror</code>, so the script tag
-            alone will not see them. Report them explicitly — in Next.js App Router, from{' '}
-            <code className="font-mono text-[12.5px]">app/global-error.tsx</code>:
-          </p>
-          <CodeBlock
-            code={`'use client'\n\nexport default function GlobalError({ error }) {\n  window.Klaxon?.captureException(error)\n  return <html><body><h2>Something went wrong</h2></body></html>\n}`}
-            language="jsx"
-          />
-          <p>
-            To configure the SDK yourself — environment, release, sampling — skip the loader
-            and call <code className="font-mono text-[12.5px]">init</code> with this DSN:
+            Skip the script tag — install the package and call{' '}
+            <code className="font-mono text-[12.5px]">init</code> once, in your app's entry
+            file, with this DSN:
           </p>
           <div className="flex items-start gap-2 rounded-lg border border-border-subtle bg-bg-base p-3">
             <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-[12.5px]">
@@ -174,10 +164,37 @@ export function SetupPane({ projectId }: { projectId: number | null }) {
             </code>
             {dsn && <CopyButton value={dsn} label="Copy" />}
           </div>
+          <CodeBlock code={`npm install @klaxon/browser`} language="bash" />
+          <CodeBlock
+            code={`// main.tsx / index.js — your app's entry point\nimport Klaxon from '@klaxon/browser'\n\nKlaxon.init({\n  dsn: '${dsn || 'https://pk_xxx@your-api.example.com/1'}',\n  release: 'web@2.4.1', // whichever version this deploy is\n})`}
+            language="javascript"
+          />
           <p>
             Setting <code className="font-mono text-[12.5px]">release</code> is what lets an
             issue tell you which version it first appeared in — the thing you want at 3am.
           </p>
+
+          <p className="pt-1">
+            <strong className="font-semibold text-text-primary">
+              That alone still misses React's render errors.
+            </strong>{' '}
+            React catches those itself and hands them to the nearest error boundary rather than{' '}
+            <code className="font-mono text-[12.5px]">window.onerror</code> — wrap your app in
+            the one the package ships:
+          </p>
+          <CodeBlock
+            code={`import Klaxon from '@klaxon/browser'\nimport { KlaxonErrorBoundary } from '@klaxon/browser/react'\n\nKlaxon.init({ dsn: '${dsn || 'https://pk_xxx@your-api.example.com/1'}' })\n\nfunction Root() {\n  return (\n    <KlaxonErrorBoundary fallback={<p>Something went wrong.</p>}>\n      <App />\n    </KlaxonErrorBoundary>\n  )\n}`}
+            language="jsx"
+          />
+          <p>
+            Next.js App Router has its own top-level catch —{' '}
+            <code className="font-mono text-[12.5px]">app/global-error.tsx</code> — for a crash
+            above where a normal boundary can reach:
+          </p>
+          <CodeBlock
+            code={`'use client'\nimport Klaxon from '@klaxon/browser'\n\nKlaxon.init({ dsn: '${dsn || 'https://pk_xxx@your-api.example.com/1'}' })\n\nexport default function GlobalError({ error }) {\n  Klaxon.captureException(error)\n  return <html><body><h2>Something went wrong</h2></body></html>\n}`}
+            language="jsx"
+          />
         </div>
       </details>
 

@@ -1,0 +1,37 @@
+{
+  "name": "@klaxon/browser",
+  "version": "0.1.0",
+  "description": "Klaxon browser SDK — catch exceptions, batch them, report them, never crash the host app.",
+  "license": "MIT",
+  "main": "klaxon.js",
+  "types": "klaxon.d.ts",
+  "exports": {
+    ".": {
+      "types": "./klaxon.d.ts",
+      "require": "./klaxon.js",
+      "import": "./klaxon.js",
+      "default": "./klaxon.js"
+    },
+    "./react": {
+      "types": "./react.d.ts",
+      "require": "./react.js",
+      "import": "./react.js",
+      "default": "./react.js"
+    }
+  },
+  "files": [
+    "klaxon.js",
+    "klaxon.d.ts",
+    "react.js",
+    "react.d.ts"
+  ],
+  "peerDependencies": {
+    "react": ">=16.8.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "sideEffects": false
+}

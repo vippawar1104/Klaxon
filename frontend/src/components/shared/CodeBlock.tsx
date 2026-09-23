@@ -13,7 +13,19 @@ export function CodeBlock({ code, language = 'python' }: CodeBlockProps) {
 
   useEffect(() => {
     let cancelled = false
-    codeToHtml(code, { lang: language, theme: 'github-light-default' })
+    // themes (plural) + defaultColor: false makes Shiki emit BOTH palettes as
+    // --shiki-light/--shiki-dark CSS variables on every token, instead of
+    // baking one theme's colors in as a fixed inline color. A single
+    // `theme: 'github-light-default'` was the bug here: those colors are
+    // tuned for a white background and go near-illegible on the dashboard's
+    // dark surface, because nothing about them responds to the .dark class
+    // the rest of the dashboard's theme already switches on. The actual
+    // switch happens in index.css, off that same .dark class.
+    codeToHtml(code, {
+      lang: language,
+      themes: { light: 'github-light-default', dark: 'github-dark-default' },
+      defaultColor: false,
+    })
       .then((result) => {
         if (!cancelled) setHtml(result)
       })

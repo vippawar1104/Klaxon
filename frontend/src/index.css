@@ -61,6 +61,56 @@ body,
 }
 
 /*
+ * Dashboard dark mode. Every component already uses the --color-bg-base /
+ * --color-text-primary / etc. tokens from @theme above rather than hardcoded
+ * colors, so overriding those same variable names under .dark is the whole
+ * implementation — no component file needs to know a "dark mode" exists.
+ * Toggled by useTheme() adding/removing this class on <html>.
+ *
+ * The accent reuses the brand orange from the marketing palette rather than
+ * a generic blue, so dark mode still reads as Klaxon rather than as "any
+ * app with a dark mode."
+ */
+html.dark {
+  --color-bg-base: #17140f;
+  --color-bg-surface: #1f1b14;
+  --color-bg-raised: #29241a;
+  --color-border-subtle: #383021;
+
+  --color-text-primary: #f5f1e6;
+  --color-text-secondary: #b3ac9b;
+  --color-text-tertiary: #7d7666;
+
+  --color-accent: #ff5a1f;
+  --color-accent-hover: #ff7a45;
+
+  --color-severity-success: #4ade80;
+  --color-severity-warning: #fbbf24;
+  --color-severity-error: #f87171;
+}
+
+html.dark body {
+  background-color: var(--color-bg-base);
+}
+
+/*
+ * CodeBlock (Setup tab's snippets) asks Shiki for both a light and a dark
+ * palette per token, via `themes` + `defaultColor: false` — Shiki then emits
+ * --shiki-light/--shiki-dark as CSS variables on every span instead of
+ * picking one as a hardcoded inline color. This is the other half: which
+ * variable actually paints, switched by the same .dark class every other
+ * dashboard color already responds to.
+ */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+html.dark .shiki,
+html.dark .shiki span {
+  color: var(--shiki-dark);
+}
+
+/*
  * The landing page is dark while the dashboard is light. Without this, an
  * overscroll bounce at the top of the landing page exposes the light body
  * background behind it as a white flash.

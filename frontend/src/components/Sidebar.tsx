@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Bell, ChevronDown, Clock, CreditCard, HelpCircle, LayoutGrid, ListFilter, LogOut, Plug } from 'lucide-react'
+import { Bell, ChevronDown, Clock, CreditCard, HelpCircle, LayoutGrid, ListFilter, LogOut, Moon, Plug, Sun } from 'lucide-react'
 import { LogoMark, Wordmark } from './Logo'
 import { api } from '../lib/api'
+import { useTheme } from '../lib/useTheme'
 import type { Project } from '../lib/types'
 
 export type PaneKey = 'issues' | 'alerts' | 'setup' | 'billing'
@@ -37,6 +38,7 @@ export function Sidebar({
   trialDaysLeft,
 }: SidebarProps) {
   const [projects, setProjects] = useState<Project[]>([])
+  const { theme, toggle: toggleTheme } = useTheme()
 
   useEffect(() => {
     api
@@ -137,6 +139,13 @@ export function Sidebar({
             </span>
           </div>
         )}
+        <button
+          onClick={toggleTheme}
+          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] text-text-secondary transition-colors hover:bg-bg-raised hover:text-text-primary"
+        >
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        </button>
         <a
           href="https://github.com/vippawar1104/CodeOn"
           target="_blank"

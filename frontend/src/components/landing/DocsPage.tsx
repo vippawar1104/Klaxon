@@ -7,6 +7,7 @@ const SECTIONS = [
   { id: 'quickstart', label: 'Quickstart' },
   { id: 'configuration', label: 'Configuration' },
   { id: 'api', label: 'API reference' },
+  { id: 'react', label: 'React' },
   { id: 'grouping', label: 'How grouping works' },
   { id: 'alerts', label: 'Alert rules' },
   { id: 'webhooks', label: 'Webhooks' },
@@ -118,15 +119,43 @@ Klaxon.init({
             <article id="api" className="scroll-mt-24">
               <h2 className="text-[24px] font-bold">API reference</h2>
               <div className="mt-4">
-                <Row name="Klaxon.captureException(err, extra?)" type="(Error, object?) => void" body="Report an error manually — the one that matters most, since React (and most frameworks) route render errors to an error boundary rather than window.onerror, so the script tag alone never sees them." />
+                <Row name="Klaxon.captureException(err, extra?)" type="(Error, object?) => void" body="Report an error manually — the one that matters most, since React (and most frameworks) route render errors to an error boundary rather than window.onerror, so the script tag alone never sees them. See React, below, for the boundary that calls this for you." />
                 <Row name="Klaxon.captureMessage(message, extra?)" type="(string, object?) => void" body="Report a plain string as an event, for a condition worth tracking that isn't a thrown exception." />
-                <Row name="Klaxon.addBreadcrumb({ category, message, level? })" type="(object) => void" body="Append to the trail attached to the next event — the last 20 kept. Klaxon's own outgoing requests are excluded, so a crash loop's breadcrumbs stay the user's actions, not the reporter's own traffic." />
+                <Row name="Klaxon.addBreadcrumb({ category, message, level? })" type="(object) => void" body="Append to the trail attached to the next event — the last 30 kept. Klaxon's own outgoing requests are excluded, so a crash loop's breadcrumbs stay the user's actions, not the reporter's own traffic." />
                 <Row name="Klaxon.setUser(user)" type="(object | null) => void" body="Attach identifying context to every subsequent event. Pass null to clear it, e.g. on sign-out." />
                 <Row name="Klaxon.flush()" type="() => void" body="Send whatever is queued immediately instead of waiting for the five-second batch timer. Called automatically on tab close." />
               </div>
               <p className="mt-2 text-[14.5px] leading-relaxed text-landing-muted">
                 Every call is wrapped internally so a bug in your own beforeSend, or a value that
                 fails to serialise, cannot throw back into your app.
+              </p>
+            </article>
+
+            <article id="react" className="scroll-mt-24">
+              <h2 className="text-[24px] font-bold">React</h2>
+              <p className="mt-3 text-[15px] leading-relaxed text-landing-muted">
+                <code className="text-landing-pink">Klaxon.init()</code> alone misses the largest
+                class of crash in a React app: React catches its own render errors and hands them
+                to the nearest error boundary instead of letting them reach{' '}
+                <code className="text-landing-pink">window.onerror</code>. Import the boundary
+                from the package's React entry point and wrap your app in it:
+              </p>
+              <Code>{`import Klaxon from '@klaxon/browser'
+import { KlaxonErrorBoundary } from '@klaxon/browser/react'
+
+Klaxon.init({ dsn: 'https://pk_live@your-api.example.com/1' })
+
+function Root() {
+  return (
+    <KlaxonErrorBoundary fallback={<p>Something went wrong.</p>}>
+      <App />
+    </KlaxonErrorBoundary>
+  )
+}`}</Code>
+              <p className="mt-4 text-[14.5px] leading-relaxed text-landing-muted">
+                One prop worth knowing: <code className="text-landing-pink">onError</code>, called
+                after Klaxon has already recorded the crash, for your own handling on top —
+                nothing needs to duplicate the reporting itself.
               </p>
             </article>
 
