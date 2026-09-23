@@ -96,11 +96,25 @@ function Home() {
   // a throwaway account, created silently, seeded with a couple of sample
   // issues so the grouping story is visible on arrival instead of an empty
   // list.
+  // Everything the dashboard remembers is per-ACCOUNT, but this component
+  // outlives a sign-out: without a page refresh, signing in as someone else
+  // (or starting a demo) kept the previous account's selected project, open
+  // issue and trial state. The stale project id was the visible bug — the
+  // Setup page waited forever on a project this account doesn't own.
+  const resetDashboard = () => {
+    setProjectId(null)
+    setOpenIssueId(null)
+    setActivePane('issues')
+    setExpired(false)
+    setTrialDaysLeft(null)
+  }
+
   const startDemo = async () => {
     try {
       const id = crypto.randomUUID()
       const { token } = await api.signup(`demo-${id}@klaxon.dev`, id)
       setToken(token)
+      resetDashboard()
 
       const [project] = await api.projects()
       if (project) {
@@ -207,6 +221,7 @@ function Home() {
       /* the local token is cleared either way */
     }
     setToken(null)
+    resetDashboard()
     setEmail(null)
     setIsDemo(false)
     setView('landing')
@@ -240,6 +255,7 @@ function Home() {
         onBack={() => setView('landing')}
         onSuccess={(token, userEmail) => {
           setToken(token)
+          resetDashboard()
           setEmail(userEmail)
           setIsDemo(false)
           setView('dashboard')

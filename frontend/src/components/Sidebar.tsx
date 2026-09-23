@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Bell, ChevronDown, Clock, CreditCard, HelpCircle, LayoutGrid, ListFilter, LogOut, Moon, Plug, Sun } from 'lucide-react'
 import { LogoMark, Wordmark } from './Logo'
 import { api } from '../lib/api'
+import { pickProjectId } from '../lib/pickProject'
 import { useTheme } from '../lib/useTheme'
 import type { Project } from '../lib/types'
 
@@ -45,7 +46,10 @@ export function Sidebar({
       .projects()
       .then((list) => {
         setProjects(list)
-        if (projectId === null && list.length > 0) onProjectChange(list[0].id)
+        // Not just "when nothing is selected": a selection left over from a
+        // previous account has to be replaced too. See pickProjectId.
+        const wanted = pickProjectId(list, projectId)
+        if (wanted !== null && wanted !== projectId) onProjectChange(wanted)
       })
       .catch(() => setProjects([]))
   }, [])
@@ -69,7 +73,7 @@ export function Sidebar({
               className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary"
             />
             <select
-              value={projectId ?? projects[0].id}
+              value={pickProjectId(projects, projectId) ?? projects[0].id}
               onChange={(e) => onProjectChange(Number(e.target.value))}
               className="w-full appearance-none truncate rounded-lg border border-border-subtle bg-bg-surface py-2 pl-8 pr-7 text-[13px] text-text-primary shadow-sm outline-none focus:border-text-tertiary"
             >

@@ -46,7 +46,13 @@ export function SetupPane({ projectId }: { projectId: number | null }) {
     setError(null)
     api
       .projects()
-      .then((list) => setProject(list.find((p) => p.id === projectId) ?? null))
+      .then((list) => {
+        const found = list.find((p) => p.id === projectId) ?? null
+        setProject(found)
+        // Said out loud rather than left as an eternal "Loading…": a project id
+        // this account doesn't own used to look exactly like a slow request.
+        if (!found) setError('That project is not in this account. Choose one from the sidebar.')
+      })
       .catch((e) => setError(toErrorMessage(e, 'Could not load the project.')))
   }, [projectId])
 
