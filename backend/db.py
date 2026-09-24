@@ -83,6 +83,12 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("alert", "next_attempt_at", "TIMESTAMP"),
     # Billing. Same reasoning as the two above — an existing `user` table
     # predates these and create_all() will not add them on its own.
+    ("issue", "ai_severity", "VARCHAR"),
+    ("issue", "ai_confidence", "FLOAT"),
+    ("issue", "ai_root_cause", "VARCHAR"),
+    ("issue", "ai_fix", "VARCHAR"),
+    ("issue", "ai_model", "VARCHAR"),
+    ("issue", "ai_explained_at", "TIMESTAMP"),
     ("user", "plan", "VARCHAR DEFAULT 'free' NOT NULL"),
     ("user", "stripe_customer_id", "VARCHAR"),
     ("user", "stripe_subscription_id", "VARCHAR"),

@@ -2,13 +2,19 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Check, EyeOff, RotateCcw, Sparkles } from 'lucide-react'
 import { api } from '../../lib/api'
 import { absoluteTime, compactNumber, relativeTime } from '../../lib/time'
-import type { IssueDetail as Detail, IssueStatus } from '../../lib/types'
+import type { AiSeverity, IssueDetail as Detail, IssueStatus, Triage } from '../../lib/types'
 import { CodeBlock } from '../shared/CodeBlock'
 import { ErrorBanner } from '../shared/ErrorBanner'
 import { CopyButton } from '../shared/CopyButton'
-import { MarkdownRenderer } from '../shared/MarkdownRenderer'
 import { Toast, useToast } from '../shared/Toast'
 import { toErrorMessage } from '../../lib/errors'
+
+const SEVERITY_STYLE: Record<AiSeverity, string> = {
+  low: 'bg-bg-raised text-text-secondary',
+  medium: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+  high: 'bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300',
+  critical: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+}
 
 function Meta({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
@@ -41,21 +47,16 @@ export function IssueDetail({ issueId, onBack }: { issueId: number; onBack: () =
   const [busy, setBusy] = useState(false)
   // Kept together: an explanation is only meaningful alongside the model that
   // produced it, so they are set and cleared as one value.
-  const [analysis, setAnalysis] = useState<{
-    text: string
-    provider: string
-    model: string | null
-  } | null>(null)
+  const [analysis, setAnalysis] = useState<Triage | null>(null)
   const [explaining, setExplaining] = useState(false)
   const [explainError, setExplainError] = useState<string | null>(null)
   const { toast, show, dismiss } = useToast()
 
-  const explain = async () => {
+  const explain = async (refresh = false) => {
     setExplaining(true)
     setExplainError(null)
     try {
-      const res = await api.explain(issueId)
-      setAnalysis({ text: res.explanation, provider: res.provider, model: res.model })
+      setAnalysis(await api.explain(issueId, refresh))
     } catch (e) {
       // A 503 here means the optional model is unavailable, not that anything
       // broke. Show the server's reason — "no key set", "key rejected" and
@@ -70,7 +71,11 @@ export function IssueDetail({ issueId, onBack }: { issueId: number; onBack: () =
     setError(null)
     api
       .issue(issueId)
-      .then(setIssue)
+      .then((i) => {
+        setIssue(i)
+        // A verdict saved earlier shows immediately, with no model call.
+        setAnalysis(i.triage)
+      })
       .catch((e) => setError(toErrorMessage(e, 'Failed to load issue.')))
   }, [issueId])
 
@@ -178,12 +183,12 @@ export function IssueDetail({ issueId, onBack }: { issueId: number; onBack: () =
               action={
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={explain}
+                    onClick={() => explain(analysis !== null)}
                     disabled={explaining}
                     className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-text-secondary transition-colors hover:bg-bg-raised hover:text-text-primary disabled:opacity-50"
                   >
                     <Sparkles size={13} />
-                    {explaining ? 'Analysing…' : 'Explain'}
+                    {explaining ? 'Analysing…' : analysis ? 'Re-analyse' : 'Explain'}
                   </button>
                   <CopyButton value={issue.latest_event.stacktrace} label="Copy" />
                 </div>
@@ -195,17 +200,33 @@ export function IssueDetail({ issueId, onBack }: { issueId: number; onBack: () =
               )}
               {analysis && (
                 <div className="mt-3 rounded-lg border border-border-subtle bg-bg-surface p-4">
-                  <p className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-text-tertiary">
-                    <Sparkles size={11} /> {analysis.provider} analysis
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${SEVERITY_STYLE[analysis.severity]}`}
+                    >
+                      {analysis.severity}
+                    </span>
+                    <span className="text-[11.5px] text-text-tertiary">
+                      {Math.round(analysis.confidence * 100)}% confidence
+                    </span>
                     {analysis.model && (
-                      <span className="font-mono normal-case tracking-normal opacity-70">
-                        {analysis.model}
+                      <span className="ml-auto flex items-center gap-1 font-mono text-[11px] text-text-tertiary">
+                        <Sparkles size={11} /> {analysis.model}
                       </span>
                     )}
+                  </div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+                    Likely cause
+                  </h3>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-text-primary">
+                    {analysis.root_cause}
                   </p>
-                  {/* Models answer in markdown; rendering it as plain text
-                      leaves raw ** and - on screen. */}
-                  <MarkdownRenderer content={analysis.text} />
+                  <h3 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+                    Suggested fix
+                  </h3>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-text-primary">
+                    {analysis.suggested_fix}
+                  </p>
                   <p className="mt-3 border-t border-border-subtle pt-2 text-[11px] text-text-tertiary">
                     Generated from the stack trace and breadcrumbs above. Verify before acting.
                   </p>

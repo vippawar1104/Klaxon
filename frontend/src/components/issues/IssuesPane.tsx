@@ -373,6 +373,14 @@ export function IssuesPane({ projectId, onOpen }: Props) {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="truncate font-medium">{issue.type}</span>
                         <StatusTag status={issue.status} />
+                        {issue.ai_severity && (
+                          <span
+                            className="rounded-full bg-bg-raised px-2 py-0.5 text-[10.5px] font-semibold uppercase text-text-secondary"
+                            title="AI-assessed severity"
+                          >
+                            AI · {issue.ai_severity}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-0.5 truncate text-[13px] text-text-secondary">
                         {issue.value}

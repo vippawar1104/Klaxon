@@ -114,6 +114,7 @@ class AIModelRouter:
             "generationConfig": {
                 "temperature": kwargs.get("temperature", 0.3),
                 "maxOutputTokens": kwargs.get("max_tokens", 1200),
+                **({"responseMimeType": "application/json"} if kwargs.get("json_mode") else {}),
             },
         }
 
@@ -130,6 +131,8 @@ class AIModelRouter:
             # Reasoning models (gpt-oss) spend tokens thinking before emitting
             # content, so this budget must cover both or the reply comes back empty.
             "max_tokens": kwargs.get("max_tokens", 1500),
+            # Both Groq and Mistral accept this OpenAI-style switch.
+            **({"response_format": {"type": "json_object"}} if kwargs.get("json_mode") else {}),
         }
 
     def _key_for(self, model: ModelProvider) -> str:

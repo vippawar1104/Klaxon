@@ -75,6 +75,15 @@ class Issue(SQLModel, table=True):
     last_seen: datetime = Field(default_factory=_utcnow, index=True)
     last_alert_at: Optional[datetime] = None
 
+    # LLM triage verdict (see core/triage.py). NULL until someone asks for it;
+    # stored so asking again is free and the list can sort by severity.
+    ai_severity: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    ai_root_cause: Optional[str] = None
+    ai_fix: Optional[str] = None
+    ai_model: Optional[str] = None
+    ai_explained_at: Optional[datetime] = None
+
 
 class AlertRule(SQLModel, table=True):
     """When to notify. `kind` picks the trigger; threshold/window apply to 'volume'."""

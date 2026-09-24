@@ -11,6 +11,18 @@ export interface Issue {
   times_seen: number
   first_seen: string
   last_seen: string
+  ai_severity?: AiSeverity | null
+}
+
+export type AiSeverity = 'low' | 'medium' | 'high' | 'critical'
+
+export interface Triage {
+  root_cause: string
+  severity: AiSeverity
+  suggested_fix: string
+  confidence: number
+  model: string | null
+  cached: boolean
 }
 
 export interface Frame {
@@ -45,6 +57,7 @@ export interface EventPayload {
 export interface IssueDetail extends Issue {
   fingerprint: string
   latest_event: EventPayload | null
+  triage: Triage | null
 }
 
 export interface Project {

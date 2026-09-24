@@ -1,4 +1,4 @@
-import type { Alert, AlertRule, Issue, IssueDetail, IssueStatus, Project } from './types'
+import type { Alert, AlertRule, Issue, IssueDetail, IssueStatus, Project, Triage } from './types'
 
 // Relative by default so the dev server's proxy handles it. In production the
 // dashboard and API are separate origins, so the API's base URL is baked in at
@@ -86,11 +86,10 @@ export const api = {
       method: 'POST',
     }),
 
-  explain: (id: number) =>
-    request<{ issue_id: number; explanation: string; provider: string; model: string | null }>(
-      `/issues/${id}/explain`,
-      { method: 'POST' },
-    ),
+  explain: (id: number, refresh = false) =>
+    request<Triage & { issue_id: number }>(`/issues/${id}/explain${refresh ? '?refresh=true' : ''}`, {
+      method: 'POST',
+    }),
 
   alerts: (projectId: number) => request<Alert[]>(`/alerts?project_id=${projectId}`),
 

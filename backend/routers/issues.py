@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
@@ -13,6 +14,7 @@ from core.ai_router import (
     AIModelRouter,
     AIModelUnavailable,
 )
+from core.triage import TriageFailed, run_triage
 
 router = APIRouter()
 
@@ -50,6 +52,7 @@ def list_issues(
             "times_seen": i.times_seen,
             "first_seen": i.first_seen,
             "last_seen": i.last_seen,
+            "ai_severity": i.ai_severity,
         }
         for i in issues
     ]
@@ -82,12 +85,27 @@ def get_issue(
         "first_seen": issue.first_seen,
         "last_seen": issue.last_seen,
         "latest_event": json.loads(latest.payload) if latest else None,
+        "triage": _stored_triage(issue),
+    }
+
+
+def _stored_triage(issue: Issue) -> dict | None:
+    if not issue.ai_explained_at:
+        return None
+    return {
+        "root_cause": issue.ai_root_cause,
+        "severity": issue.ai_severity,
+        "suggested_fix": issue.ai_fix,
+        "confidence": issue.ai_confidence,
+        "model": issue.ai_model,
+        "cached": True,
     }
 
 
 @router.post("/{issue_id}/explain")
 def explain_issue(
     issue_id: int,
+    refresh: bool = False,
     session: Session = Depends(get_session),
     user: User = Depends(require_active_account),
     ai_router: AIModelRouter = Depends(get_ai_router),
@@ -100,6 +118,12 @@ def explain_issue(
     # Owner-only: this ships someone else's stack trace to a third-party model
     # on a paid API key, so it must not be callable for an arbitrary issue id.
     issue = owned_issue(session, user, issue_id)
+
+    # A verdict already on the row costs nothing to return; only an explicit
+    # ?refresh=true pays for another model call.
+    stored = _stored_triage(issue)
+    if stored and not refresh:
+        return {"issue_id": issue_id, **stored}
 
     latest = session.exec(
         select(Event)
@@ -119,27 +143,33 @@ def explain_issue(
         f"Type: {issue.type}\nMessage: {issue.value}\nCulprit: {issue.culprit}\n\n"
         f"Stack trace:\n{trace}\n\n"
         f"Breadcrumbs leading up to it:\n{crumbs or '  (none)'}\n\n"
-        "In under 150 words: the most likely root cause, and the single change "
-        "most likely to fix it. If the trace is insufficient, say what is missing."
+        "Give the most likely root cause and the single change most likely to fix "
+        "it, each in under 60 words. If the trace is insufficient, say what is "
+        "missing in the root cause and lower the confidence."
     )
 
     model = ai_router.default_model()
     try:
-        # Budget covers reasoning tokens too: some models think before they
-        # answer, and a tight limit returns a 200 with empty content.
-        explanation = ai_router.complete(prompt, max_tokens=1500)
+        verdict = run_triage(ai_router, prompt)
     except AIModelUnavailable as e:
         # 503 rather than 500: the service is fine, the optional model is not.
         raise HTTPException(status_code=503, detail=str(e)) from e
+    except TriageFailed as e:
+        # 502: the upstream answered, but with something we refuse to store.
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
     env = PROVIDER_ENV[model][0] if model else ""
-    return {
-        "issue_id": issue_id,
-        "explanation": explanation,
-        # Reported so the UI never has to guess which provider answered.
-        "provider": PROVIDER_LABEL.get(env, "AI"),
-        "model": model.value if model else None,
-    }
+    label = PROVIDER_LABEL.get(env, "AI")
+    issue.ai_severity = verdict.severity
+    issue.ai_confidence = verdict.confidence
+    issue.ai_root_cause = verdict.root_cause
+    issue.ai_fix = verdict.suggested_fix
+    # Reported so the UI never has to guess which provider answered.
+    issue.ai_model = f"{label} · {model.value}" if model else label
+    issue.ai_explained_at = datetime.now(timezone.utc)
+    session.add(issue)
+    session.commit()
+    return {"issue_id": issue_id, **_stored_triage(issue), "cached": False}
 
 
 @router.post("/{issue_id}/status")
